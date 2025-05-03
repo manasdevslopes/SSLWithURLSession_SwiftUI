@@ -11,6 +11,22 @@ import SwiftUI
 import MapKit
 import Foundation
 
+protocol RepositoryProtocol {
+  func cardScan(image: Data) async -> Result<CardScanModel?, CustomError>
+  func odometerScan(image: Data) async -> Result<OdometerScanModel?, CustomError>
+  func changeEmail(email: String, newEmail: String, uid: String?) async -> Bool
+  func login(username: String, password: String) async -> Result<User?, CustomError>
+  func logout() async -> Bool
+  func editUser(name: String, surname: String) async -> Result<EdituserResponse?, CustomError>
+  func deleteFavourite(locationId: String) async -> Bool
+  func deleteUser() async -> Result<EdituserResponse?, CustomError>
+  func deleteVehicle() async -> Bool
+  func getVehicles() async -> [Vehicle]
+  func getFavourites(userLocation: CLLocationCoordinate2D) async -> [LocationModel]
+  func user(username: String, password: String) async -> Result<User?, CustomError>
+  func user(token: String) async -> Result<User?, CustomError>
+}
+
 struct Repository {
   func cardScan(image: Data) async -> Result<CardScanModel?, CustomError> {
     return await NetworkData.cardScan.getDataSync(image: image)
@@ -96,6 +112,8 @@ struct Repository {
   }
 }
 
+extension Repository: RepositoryProtocol {}
+
 // Then in respective ViewModels -
 // Use it like this, for example -
 class SomeViewModel: ObservableObject {
@@ -105,9 +123,9 @@ class SomeViewModel: ObservableObject {
   typealias MakerList = [String: [Vehicle]]
   @Published var makers: MakerList = [:]
   
-  private var repository: Repository
+  private var repository: RepositoryProtocol
   
-  init(_ repository: Repository) {
+  init(_ repository: RepositoryProtocol) {
     self.repository = repository
   }
   
@@ -148,7 +166,11 @@ class SomeViewModel: ObservableObject {
 }
 
 struct SomeView: View {
-  @StateObject var viewModel = SomeViewModel(Repository())
+  @StateObject var viewModel: SomeViewModel
+  
+  init() {
+    _viewModel = StateObject(wrappedValue: SomeViewModel(Repository()))
+  }
   
   var body: some View {
     VStack {
